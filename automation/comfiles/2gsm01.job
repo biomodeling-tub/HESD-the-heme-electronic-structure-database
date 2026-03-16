@@ -1,0 +1,51 @@
+#!/bin/bash --login
+#$ -cwd
+#$ -pe mp 4
+#$ -N gauss_2gsm_01
+#$ -o gaussian.out
+#$ -j y
+#$ -l h_rt=4800
+#$ -m ea
+#$ -M j.jones@tu-berlin.de  
+
+
+module load g16
+declare -x GAUSS_SCRDIR="${SCRATCHDIR}"
+
+STOREDIR=$1
+COMNAME=$2
+
+if [ ! -s /work/jones/${STOREDIR}/${COMNAME}.com ]; then
+echo "Error: input file /work/jones/${STOREDIR}/${COMNAME} does not exist!"
+exit 1
+fi
+
+SCRATCHDIR=$(mktemp -d /scratch/jones/gaussian.XXXXXXX)
+
+chmod go+rwx ${SCRATCHDIR}
+
+echo ${STOREDIR}
+echo ${SCRATCHDIR}
+cd ${SCRATCHDIR}
+cp /work/jones/${STOREDIR}/*.chk ${SCRATCHDIR}/
+cp /work/jones/${STOREDIR}/${COMNAME}.com ${SCRATCHDIR}/
+ls -al ${SCRATCHDIR}
+
+g16 ${SCRATCHDIR}/${COMNAME}.com # && echo "WORT"
+sleep 5
+
+mv -f *.chk /work/jones/${STOREDIR}/
+
+### cp -a ${SCRATCHDIR}  ${STOREDIR}/${COMNAME}_scratch
+
+ls -al ${SCRATCHDIR}
+
+cd /work/jones/${STOREDIR}
+#formchk *.chk
+#rm -r ${SCRATCHDIR}
+
+#echo "        " >> /net/work/zhartovska/BioModel/timeofqg.txt
+#echo $PWD $1 >> /net/work/zhartovska/BioModel/timeofqg.txt
+#timedatectl|grep Local >> /net/work/zhartovska/BioModel/timeofqg.txt
+#echo "       " >> /net/work/zhartovska/BioModel/timeofqg.txt
+#echo ____ >> /net/work/zhartovska/BioModel/timeofqg.txt

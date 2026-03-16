@@ -1,0 +1,49 @@
+#!/bin/bash --login
+#$ -cwd
+#$ -pe mp 4
+#$ -N gaussian
+#$ -o gaussian.out
+#$ -j y
+#$ -l h_rt=604800
+#$ -m ea
+#$ -M elizaveta.zhartovska@campus.tu-berlin.de  
+
+echo "        " >> /net/work/zhartovska/BioModel/timeofqg.txt
+echo $PWD $1 >> /net/work/zhartovska/BioModel/timeofqg.txt
+timedatectl|grep Local >> /net/work/zhartovska/BioModel/timeofqg.txt
+echo "       " >> /net/work/zhartovska/BioModel/timeofqg.txt
+echo ____ >> /net/work/zhartovska/BioModel/timeofqg.txt
+
+module load g16
+
+#declare -x GAUSS_SCRDIR="${SCRATCHDIR}"
+
+# execution command:                      this file                $1     $2
+# qsub -o $1.out -l $LAUFZEIT ~/work/JobScripts/run_gaussian16.sh $PWD $1.com
+
+STOREDIR=$1
+COMNAME=$2
+
+if [ ! -s ${STOREDIR}/${COMNAME} ]; then
+ echo "Error: input file ${STOREDIR}/${COMNAME} does not exist!"
+ exit 1
+fi
+
+SCRATCHDIR=$(mktemp -d /scratch/zhartovska_gaussian.XXXXXXX)
+chmod go+rwx ${SCRATCHDIR}
+cd ${SCRATCHDIR}
+cp ${STOREDIR}/*.chk ${SCRATCHDIR}/
+cp ${STOREDIR}/*.com ${SCRATCHDIR}/
+
+g16 ${STOREDIR}/${COMNAME}
+sleep 5
+
+mv -f ${SCRATCHDIR}/*.chk ${STOREDIR}/
+
+### cp -a ${SCRATCHDIR}  ${STOREDIR}/${COMNAME}_scratch
+
+ls -al ${SCRATCHDIR}
+
+cd ${STOREDIR}
+#formchk *.chk
+rm -r ${SCRATCHDIR}
