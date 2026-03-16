@@ -5,6 +5,7 @@ This shows how to easily create different types of tables for different energy v
 """
 
 import pandas as pd
+from repo_paths import resolve_table_input
 from create_latex_table import (
     EnergyVariable, TableType, create_energy_table, create_ground_state_table,
     create_total_energy_comprehensive_table, create_lft_energy_base_statistical_table
@@ -14,7 +15,7 @@ def example_usage():
     """Example of how to use the new table creation system."""
     
     # Load your data
-    df = pd.read_csv("tables/processed_output.csv")
+    df = pd.read_csv(resolve_table_input("processed_output.csv"))
     
     # ========================================================================
     # Method 1: Use the convenience functions (simplest approach)

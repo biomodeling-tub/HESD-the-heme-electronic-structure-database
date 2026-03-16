@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 import os
 from enum import Enum
+from repo_paths import derived_table_path, resolve_table_input
 
 # Global verbosity setting
 verbose = False
@@ -468,7 +469,9 @@ def create_energy_table(df, energy_var, table_type, convert_to_ev=True, save_to_
     
     # Save to file if requested
     if save_to_file:
-        filename = f'tables/{energy_var.column_name.replace("-", "_").replace("[", "_").replace("]", "_")}_{table_type.value}_latex_table.txt'
+        filename = str(derived_table_path(
+            f'{energy_var.column_name.replace("-", "_").replace("[", "_").replace("]", "_")}_{table_type.value}_latex_table.txt'
+        ))
         with open(filename, 'w') as f:
             for line in latex_table:
                 f.write(line + '\n')
@@ -622,7 +625,9 @@ def create_ground_state_table(df, energy_var, convert_to_ev=True, save_to_file=T
     
     # Save to file if requested
     if save_to_file:
-        filename = f'tables/{energy_var.column_name.replace("-", "_").replace("[", "_").replace("]", "_")}_ground_states_table.txt'
+        filename = str(derived_table_path(
+            f'{energy_var.column_name.replace("-", "_").replace("[", "_").replace("]", "_")}_ground_states_table.txt'
+        ))
         with open(filename, 'w') as f:
             for line in latex_table:
                 f.write(line + '\n')
@@ -664,9 +669,65 @@ def create_lft_energy_baseline_normalized_table(df):
     )
     return create_energy_table(df, lft_energy_var, TableType.BASE_STATISTICAL)
 
+
+def create_min_max_range_latex_table(df, column_name, display_name,
+                                     decimals=6, convert_to_ev=True,
+                                     show_row_references=False, save_to_file=True):
+    energy_var = EnergyVariable(
+        column_name=column_name,
+        display_name=display_name,
+        decimal_places=decimals,
+        use_baseline_normalization=True,
+        baseline_type="pdb_min",
+    )
+    return create_energy_table(df, energy_var, TableType.MIN_MAX, convert_to_ev=convert_to_ev, save_to_file=save_to_file)
+
+
+def create_comprehensive_latex_table(df, column_name, display_name,
+                                     decimals=6, convert_to_ev=True,
+                                     show_row_references=False, save_to_file=True):
+    energy_var = EnergyVariable(
+        column_name=column_name,
+        display_name=display_name,
+        decimal_places=decimals,
+        use_baseline_normalization=True,
+        baseline_type="pdb_min",
+    )
+    return create_energy_table(df, energy_var, TableType.COMPREHENSIVE, convert_to_ev=convert_to_ev, save_to_file=save_to_file)
+
+
+def create_pdb_baseline_latex_table(df, column_name, display_name,
+                                    decimals=6, convert_to_ev=True,
+                                    show_row_references=False, save_to_file=True):
+    energy_var = EnergyVariable(
+        column_name=column_name,
+        display_name=display_name,
+        decimal_places=decimals,
+        use_baseline_normalization=True,
+        baseline_type="charge_0_mult_1",
+    )
+    return create_energy_table(df, energy_var, TableType.BASELINE, convert_to_ev=convert_to_ev, save_to_file=save_to_file)
+
+
+def create_pdb_ground_state_table(df, column_name, display_name,
+                                  decimals=6, convert_to_ev=True,
+                                  save_to_file=True):
+    energy_var = EnergyVariable(
+        column_name=column_name,
+        display_name=display_name,
+        decimal_places=decimals,
+        use_baseline_normalization=True,
+        baseline_type="charge_0_mult_1",
+    )
+    return create_ground_state_table(df, energy_var, convert_to_ev=convert_to_ev, save_to_file=save_to_file)
+
 if __name__ == "__main__":
     # Load data
-    data_files = ['tables/processed_output.csv', 'tables/DB.csv', 'tables/data.csv']
+    data_files = [
+        str(resolve_table_input('processed_output.csv')),
+        str(resolve_table_input('DB.csv')),
+        str(resolve_table_input('data.csv')),
+    ]
     df_plots = None
     
     for filename in data_files:

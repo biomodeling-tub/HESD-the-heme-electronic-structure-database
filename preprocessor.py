@@ -11,8 +11,16 @@ import pandas as pd
 from datetime import datetime
 import MDAnalysis as mda
 import glob
+import argparse
 from joblib import Parallel, delayed
 from calculate_rmsd import RMSDAnalyzer
+from repo_paths import (
+    JSONS_DIR,
+    PRIOR_ANALYSIS_DIR,
+    canonical_table_path,
+    derived_table_path,
+    resolve_table_input,
+)
 
 
 #Global Flags
@@ -53,15 +61,17 @@ class DataPreprocessor:
 
     def __init__(self, df: pd.DataFrame, keep_homo_lumo: bool = False,
                  write_file: bool = True, skip_plots: bool = True, n_jobs: int = 1,
-                 analysis_folder: str = "prior_analysis", homo_lumo_all: bool = False):
+                 analysis_folder: str | None = None, homo_lumo_all: bool = False,
+                 derived_tables_dir: str | None = None):
         self.original_df = df
         self.df = df.copy(deep=False)
         self.keep_homo_lumo = keep_homo_lumo
         self.write_file = write_file
         self.skip_plots = skip_plots
         self.n_jobs = n_jobs
-        self.analysis_folder = analysis_folder
+        self.analysis_folder = analysis_folder or str(PRIOR_ANALYSIS_DIR)
         self.homo_lumo_all = homo_lumo_all
+        self.derived_tables_dir = derived_tables_dir
         os.makedirs(self.analysis_folder, exist_ok=True)
 
         # Precompile regex patterns
@@ -73,6 +83,12 @@ class DataPreprocessor:
         self.report = {}
         self.encoding_dict = {}
         self.sample_tracking = []
+
+    def output_table_path(self, filename: str) -> str:
+        if self.derived_tables_dir is not None:
+            os.makedirs(self.derived_tables_dir, exist_ok=True)
+            return str(os.path.join(self.derived_tables_dir, filename))
+        return str(derived_table_path(filename))
 
     def track_sample_count(self, step_name: str, description: str = ""):
         """
@@ -1161,8 +1177,7 @@ class DataPreprocessor:
         results_df = pd.DataFrame(results)
         
         # Write to CSV
-        output_filename = 'tables/reduction_potentials.csv'
-        os.makedirs('tables', exist_ok=True)
+        output_filename = self.output_table_path('reduction_potentials.csv')
         results_df.to_csv(output_filename, index=False)
         
         # Report summary statistics
@@ -1485,9 +1500,9 @@ class DataPreprocessor:
         if not hasattr(self, 'json_dir'):
             # Try to infer JSON directory from common locations
             possible_dirs = [
-                "/home/pbuser/Desktop/PhD_WORK/heme/jsons/",
+                str(JSONS_DIR),
                 "./jsons/",
-                "jsons/"
+                "jsons/",
             ]
             json_dir = None
             for dir_path in possible_dirs:
@@ -1680,7 +1695,7 @@ class DataPreprocessor:
         2. Proper grouping in analyses
         3. Meaningful biological interpretation (typically stronger ligand first)
 
-        The sorted copy is saved to 'tables/processed_output_sorted_axial.csv'.
+        The sorted copy is saved to the configured derived tables directory.
         """
         # Check if axial columns exist
         if 'axial1' not in self.df.columns or 'axial2' not in self.df.columns:
@@ -1754,8 +1769,7 @@ class DataPreprocessor:
                 continue
 
         # Save the sorted copy
-        output_filename = 'tables/processed_output_sorted_axial.csv'
-        os.makedirs('tables', exist_ok=True)
+        output_filename = self.output_table_path('processed_output_sorted_axial.csv')
         df_sorted.to_csv(output_filename, index=False)
 
         print(f"\nStandardized axial ligands copy created:")
@@ -1896,16 +1910,16 @@ class DataPreprocessor:
         if df_sorted is not None:
             # Save unsorted version as backup
             if self.write_file:
-                self.df.to_csv('tables/processed_output_unsorted_axial.csv', index=False)
+                self.df.to_csv(self.output_table_path('processed_output_unsorted_axial.csv'), index=False)
 
             # Replace with sorted version
             self.df = df_sorted
 
         # Write the (now sorted) dataframe to the main output file
         if self.write_file:
-            self.df.to_csv('tables/processed_output.csv', index=False)
+            self.df.to_csv(self.output_table_path('processed_output.csv'), index=False)
             if self.homo_lumo_all:
-                self.df.to_csv('tables/processed_output_homo_lumo_all.csv', index=False)
+                self.df.to_csv(self.output_table_path('processed_output_homo_lumo_all.csv'), index=False)
 
         if debug:
             return self.df, subsets, self.encoding_dict, df1, df2, df2_5, df3, df4
@@ -2073,16 +2087,55 @@ class DataAnalyzer:
 
 
 if __name__ == "__main__":
-    # Example usage with homo_lumo_all flag
-    import pandas as pd
-    
-    # Load your data
-    df = pd.read_csv("tables/DB.csv")
-    
-    # Process with all HOMO/LUMO columns preserved
-    preprocessor = DataPreprocessor(df, homo_lumo_all=True)
-    processed_df, subsets, encoding_dict = preprocessor.process()
-    
-    print("DataPreprocessor with homo_lumo_all=True option is available.")
-    print("Usage: preprocessor = DataPreprocessor(df, homo_lumo_all=True)")
+    parser = argparse.ArgumentParser(
+        description="Preprocess the flattened HESD table into derived analysis tables."
+    )
+    parser.add_argument(
+        "--input-csv",
+        default=str(canonical_table_path("HESD_unfiltered.csv")),
+        help="Input flattened CSV file.",
+    )
+    parser.add_argument(
+        "--analysis-folder",
+        default=str(PRIOR_ANALYSIS_DIR),
+        help="Directory for analysis reports and specialized QM tables.",
+    )
+    parser.add_argument(
+        "--derived-tables-dir",
+        default=None,
+        help="Optional override for the derived tables output directory.",
+    )
+    parser.add_argument(
+        "--keep-homo-lumo",
+        action="store_true",
+        help="Keep the reduced HOMO/LUMO feature set in the output.",
+    )
+    parser.add_argument(
+        "--homo-lumo-all",
+        action="store_true",
+        help="Write the full HOMO/LUMO table in addition to the standard processed table.",
+    )
+    parser.add_argument(
+        "--no-write",
+        action="store_true",
+        help="Run preprocessing without writing CSV outputs.",
+    )
+    parser.add_argument(
+        "--n-jobs",
+        type=int,
+        default=1,
+        help="Number of worker processes to use where supported.",
+    )
+    args = parser.parse_args()
 
+    df = pd.read_csv(args.input_csv, low_memory=False)
+    preprocessor = DataPreprocessor(
+        df,
+        keep_homo_lumo=args.keep_homo_lumo,
+        write_file=not args.no_write,
+        n_jobs=args.n_jobs,
+        analysis_folder=args.analysis_folder,
+        homo_lumo_all=args.homo_lumo_all,
+        derived_tables_dir=args.derived_tables_dir,
+    )
+    preprocessor.process()

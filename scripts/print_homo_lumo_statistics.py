@@ -13,6 +13,7 @@ import pandas as pd
 import numpy as np
 import re
 from pathlib import Path
+from repo_paths import resolve_table_input
 
 # Conversion constant (CODATA 2018)
 HARTREE_TO_EV = 27.211386245988
@@ -105,7 +106,7 @@ def print_statistics(column_name, stats_ha, stats_ev):
     print(f"    eV:      mean = {stats_ev['mean']:>10.6f}, min = {stats_ev['min']:>10.6f}, max = {stats_ev['max']:>10.6f}")
     print(f"    Valid samples: {stats_ha['count']}")
 
-def main(csv_path='tables/processed_output.csv'):
+def main(csv_path=None):
     """
     Main function to load data and print statistics.
 
@@ -114,6 +115,8 @@ def main(csv_path='tables/processed_output.csv'):
     csv_path : str
         Path to the CSV file
     """
+    csv_path = str(resolve_table_input('processed_output.csv')) if csv_path is None else csv_path
+
     # Check if file exists
     if not Path(csv_path).exists():
         print(f"Error: File not found: {csv_path}")

@@ -16,7 +16,10 @@ from datetime import datetime
 import MDAnalysis as mda
 from scipy.stats import gaussian_kde
 import glob
+import argparse
 from joblib import Parallel, delayed
+from pathlib import Path
+from repo_paths import LOGFILES_DIR, JSONS_DIR, canonical_table_path
 
 
 #Global Flags
@@ -26,13 +29,13 @@ verbose=False
 
 class g16parser:
     def __init__(self, log_dir=None, json_dir=None, csv_path=None):
-        self.log_dir = log_dir or "/home/pbuser/Desktop/PhD_WORK/heme/logfiles/"
-        self.json_dir = json_dir or "/home/pbuser/Desktop/PhD_WORK/heme/jsons/"
+        self.log_dir = str(Path(log_dir) if log_dir is not None else LOGFILES_DIR)
+        self.json_dir = str(Path(json_dir) if json_dir is not None else JSONS_DIR)
         self.parsed_data = {}
         if csv_path is not None:
             self.csv_data = pd.read_csv(csv_path)
         else:
-            self.csv_data = pd.read_csv("/home/pbuser/Desktop/PhD_WORK/heme/tables/pyDISH.csv")
+            self.csv_data = pd.read_csv(canonical_table_path("pyDISH.csv"))
         os.makedirs(self.json_dir, exist_ok=True)
 
     def removekey_copy(self, dictionary, key):
@@ -2389,3 +2392,51 @@ class g16parser:
         
         return fe_contributions
 
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Parse Gaussian log files into JSON records."
+    )
+    parser.add_argument(
+        "--log-dir",
+        default=str(LOGFILES_DIR),
+        help="Directory containing Gaussian .log files.",
+    )
+    parser.add_argument(
+        "--json-dir",
+        default=str(JSONS_DIR),
+        help="Directory where parsed JSON files will be written.",
+    )
+    parser.add_argument(
+        "--csv-path",
+        default=str(canonical_table_path("pyDISH.csv")),
+        help="Metadata CSV used to enrich parsed records.",
+    )
+    parser.add_argument(
+        "--log-file",
+        help="Optional single Gaussian log file to parse instead of the entire directory.",
+    )
+    parser.add_argument(
+        "--output-json",
+        help="Optional output JSON path when --log-file is used.",
+    )
+    args = parser.parse_args()
+
+    parser_instance = g16parser(
+        log_dir=args.log_dir,
+        json_dir=args.json_dir,
+        csv_path=args.csv_path,
+    )
+
+    if args.log_file:
+        output_json = args.output_json
+        if output_json is None:
+            output_json = str(Path(args.json_dir) / f"{Path(args.log_file).stem}.json")
+        parser_instance.parse_gaussian_logfile(args.log_file, output_json)
+        return
+
+    parser_instance.parse()
+
+
+if __name__ == "__main__":
+    main()

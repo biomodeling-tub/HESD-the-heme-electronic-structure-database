@@ -4,7 +4,8 @@ Test script to generate just the Fe coordination plots to see if color coding wo
 """
 
 import sys
-sys.path.append('/home/pbuser/Desktop/PhD_WORK/heme')
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from plot_qm_analysis import QMAnalysisPlotter
 

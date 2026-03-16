@@ -4,6 +4,7 @@ Analyze the axial ligand encoding to understand why no swaps occurred.
 """
 
 import pandas as pd
+from repo_paths import resolve_table_input
 
 # Decoding dictionaries from preprocessor.py
 axial1_decode = {0: 'CYS', 1: 'HIS'}
@@ -84,7 +85,7 @@ else:
 
 # Load actual data to verify
 try:
-    df = pd.read_csv("tables/processed_output.csv")
+    df = pd.read_csv(resolve_table_input("processed_output.csv"))
     if 'axial1' in df.columns and 'axial2' in df.columns:
         print(f"\n{'='*80}")
         print("ACTUAL DATA VERIFICATION")

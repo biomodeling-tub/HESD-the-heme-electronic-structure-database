@@ -16,7 +16,9 @@ from datetime import datetime
 import MDAnalysis as mda
 from scipy.stats import gaussian_kde
 import glob
+import argparse
 from joblib import Parallel, delayed
+from repo_paths import JSONS_DIR, QM_ANALYSIS_TABLES_DIR, canonical_table_path
 
 
 #Global Flags
@@ -26,10 +28,10 @@ verbose=False
 
 class JSONProcessor:
     def __init__(self,
-                 json_dir="/home/pbuser/Desktop/PhD_WORK/heme/jsons/",
-                 output_csv="/home/pbuser/Desktop/PhD_WORK/heme/DB.csv"):
-        self.json_dir = json_dir
-        self.output_csv = output_csv
+                 json_dir=None,
+                 output_csv=None):
+        self.json_dir = str(json_dir) if json_dir is not None else str(JSONS_DIR)
+        self.output_csv = str(output_csv) if output_csv is not None else str(canonical_table_path("HESD_unfiltered.csv"))
 
     def process_files(self):
         """
@@ -354,3 +356,44 @@ class JSONProcessor:
         
         return summary if len(summary) > 2 else None
 
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Flatten parsed Gaussian JSON files into tabular CSV outputs."
+    )
+    parser.add_argument(
+        "--json-dir",
+        default=str(JSONS_DIR),
+        help="Directory containing parsed JSON files.",
+    )
+    parser.add_argument(
+        "--output-csv",
+        default=str(canonical_table_path("HESD_unfiltered.csv")),
+        help="Output CSV path for the flattened main table.",
+    )
+    parser.add_argument(
+        "--specialized-output-dir",
+        default=str(QM_ANALYSIS_TABLES_DIR),
+        help="Directory for specialized QM analysis tables.",
+    )
+    parser.add_argument(
+        "--skip-main-table",
+        action="store_true",
+        help="Skip writing the main flattened CSV.",
+    )
+    parser.add_argument(
+        "--skip-specialized",
+        action="store_true",
+        help="Skip writing specialized QM analysis tables.",
+    )
+    args = parser.parse_args()
+
+    processor = JSONProcessor(json_dir=args.json_dir, output_csv=args.output_csv)
+    if not args.skip_main_table:
+        processor.process_files()
+    if not args.skip_specialized:
+        processor.create_specialized_qm_tables(output_dir=args.specialized_output_dir)
+
+
+if __name__ == "__main__":
+    main()

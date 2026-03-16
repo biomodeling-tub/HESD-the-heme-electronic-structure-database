@@ -7,6 +7,7 @@ with bars colored by charge-multiplicity states.
 
 import pandas as pd
 from calculate_rmsd import RMSDAnalyzer
+from repo_paths import resolve_table_input
 
 def main():
     # Initialize analyzer
@@ -14,12 +15,12 @@ def main():
 
     # Load iron plane distance data
     print("Loading iron plane distance data...")
-    df_plane = pd.read_csv("tables/iron_plane_distances.csv")
+    df_plane = pd.read_csv(resolve_table_input("iron_plane_distances.csv"))
     print(f"Loaded {len(df_plane)} structures with iron plane distance data")
 
     # Load charge-multiplicity data from processed_output.csv
     print("\nLoading charge-multiplicity data...")
-    processed_df = pd.read_csv("tables/processed_output.csv")
+    processed_df = pd.read_csv(resolve_table_input("processed_output.csv"))
 
     # Extract PDB_ID and charge-multiplicity information
     # The file_name format is like "1a2f01.log" where first 4 chars are PDB_ID

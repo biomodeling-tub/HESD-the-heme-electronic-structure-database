@@ -7,10 +7,11 @@ Creates histograms comparing PDB and XYZ distances.
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from repo_paths import resolve_table_input
 
 def main():
     # Load the data
-    csv_file = "tables/iron_axial_distances.csv"
+    csv_file = resolve_table_input("iron_axial_distances.csv")
     df = pd.read_csv(csv_file)
 
     print(f"Loaded {len(df)} total measurements from {csv_file}")

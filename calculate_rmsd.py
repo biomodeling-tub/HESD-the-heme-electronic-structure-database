@@ -8,6 +8,7 @@ files, focusing only on heavy atoms of the heme porphyrin ring.
 """
 
 import os
+import argparse
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -16,6 +17,7 @@ import MDAnalysis as mda
 from MDAnalysis.analysis import align
 import warnings
 warnings.filterwarnings('ignore')
+from repo_paths import PDB_DIR, derived_table_path, resolve_table_input
 
 # Import centralized color mappings from plots.py
 try:
@@ -348,7 +350,7 @@ def get_iron_axial_distances(pdb_file, xyz_file, verbose=False):
         if len(all_pdb_atoms) != len(xyz_coords):
             if verbose:
                 print(f"WARNING: Atom count mismatch - PDB has {len(all_pdb_atoms)} atoms, XYZ has {len(xyz_coords)} atoms")
-            with open("tables/suspicious_distances.log", "a") as f:
+            with open(self.suspicious_log_file, "a") as f:
                 pdb_id = Path(pdb_file).parent.name
                 f.write(f"\nWARNING: {pdb_id} - Atom count mismatch (PDB: {len(all_pdb_atoms)}, XYZ: {len(xyz_coords)})\n")
         
@@ -473,7 +475,7 @@ def get_iron_axial_distances(pdb_file, xyz_file, verbose=False):
         # Write suspicious distances to file
         if suspicious_distances:
             pdb_id = Path(pdb_file).parent.name
-            with open("tables/suspicious_distances.log", "a") as f:
+            with open(self.suspicious_log_file, "a") as f:
                 f.write(f"\n{'='*80}\n")
                 f.write(f"LARGE DISTANCE DIFFERENCES FOUND FOR {pdb_id}\n")
                 f.write(f"PDB File: {pdb_file}\n")
@@ -519,9 +521,9 @@ class RMSDAnalyzer:
     - HIS-MET (not MET-HIS)
     """
     
-    def __init__(self, pdb_base_dir="/home/pbuser/Desktop/PhD_WORK/heme/PDB", verbose=False, filter_axial_ligands=True):
-        self.pdb_base_dir = Path(pdb_base_dir)
-        self.suspicious_log_file = "tables/suspicious_distances.log"
+    def __init__(self, pdb_base_dir=None, verbose=False, filter_axial_ligands=True):
+        self.pdb_base_dir = Path(pdb_base_dir) if pdb_base_dir is not None else PDB_DIR
+        self.suspicious_log_file = str(derived_table_path("suspicious_distances.log"))
         self.verbose = verbose
         self.filter_axial_ligands = filter_axial_ligands
         
@@ -621,7 +623,7 @@ class RMSDAnalyzer:
         
         return pd.DataFrame(filtered_results)
     
-    def save_filtered_axial_combinations_report(self, output_file="tables/filtered_axial_combinations_report.csv"):
+    def save_filtered_axial_combinations_report(self, output_file=None):
         """
         Generate and save a report of PDB IDs and their axial ligand combinations 
         that are filtered out from the iron-plane distance analysis.
@@ -632,6 +634,9 @@ class RMSDAnalyzer:
         Returns:
             pandas.DataFrame: DataFrame with the filtered combinations
         """
+        if output_file is None:
+            output_file = str(derived_table_path("filtered_axial_combinations_report.csv"))
+
         if self.verbose:
             print("Collecting PDB IDs and axial combinations that are filtered out...")
         
@@ -1437,7 +1442,7 @@ class RMSDAnalyzer:
         df_rmsd = self.process_all_structures()
         if not df_rmsd.empty:
             # Save RMSD results to CSV
-            csv_file = "tables/rmsd_results.csv"
+            csv_file = str(derived_table_path("rmsd_results.csv"))
             df_rmsd.to_csv(csv_file, index=False)
             if self.verbose:
                 print(f"\nRMSD results saved to: {csv_file}")
@@ -1456,7 +1461,7 @@ class RMSDAnalyzer:
         df_distances = self.process_iron_axial_distances()
         if not df_distances.empty:
             # Save distance results to CSV
-            distance_csv = "tables/iron_axial_distances.csv"
+            distance_csv = str(derived_table_path("iron_axial_distances.csv"))
             df_distances.to_csv(distance_csv, index=False)
             if self.verbose:
                 print(f"\nIron-axial distance results saved to: {distance_csv}")
@@ -2167,7 +2172,7 @@ class RMSDAnalyzer:
         df_plane = self.process_iron_plane_distances()
         if not df_plane.empty:
             # Save all Fe-plane distance results to CSV
-            plane_csv = "tables/iron_plane_distances.csv"
+            plane_csv = str(derived_table_path("iron_plane_distances.csv"))
             df_plane.to_csv(plane_csv, index=False)
             if self.verbose:
                 print(f"\nAll Fe-plane distance results saved to: {plane_csv}")
@@ -2175,7 +2180,7 @@ class RMSDAnalyzer:
             # Create filtered version for plots based on processed_output.csv PDB IDs
             # Note: processed_output.csv contains axial ligands sorted alphabetically (axial1 < axial2)
             try:
-                processed_df = pd.read_csv("tables/processed_output.csv")
+                processed_df = pd.read_csv(resolve_table_input("processed_output.csv"))
                 if 'file_name' in processed_df.columns:
                     # Extract PDB codes from file names (first 4 characters of log files)
                     processed_pdb_ids = set()
@@ -2188,7 +2193,7 @@ class RMSDAnalyzer:
                     df_plane_plots = df_plane[df_plane['PDB_ID'].isin(processed_pdb_ids)].copy()
                     
                     # Save filtered data for plots
-                    plots_csv = "tables/iron_plane_distances_plots.csv"
+                    plots_csv = str(derived_table_path("iron_plane_distances_plots.csv"))
                     df_plane_plots.to_csv(plots_csv, index=False)
                     
                     if self.verbose:
@@ -2648,8 +2653,51 @@ class RMSDAnalyzer:
 
 def main():
     """Main function to run the RMSD analysis and additional analyses."""
-    analyzer = RMSDAnalyzer()
-    analyzer.run_all_analyses(rmsd=True, axial=True, iron_plane=True, absolute_iron_plane=True, distortion=True)
+    parser = argparse.ArgumentParser(
+        description="Run RMSD, Fe-axial, and Fe-plane analyses on prepared heme structures."
+    )
+    parser.add_argument(
+        "--pdb-base-dir",
+        default=str(PDB_DIR),
+        help="Base directory containing prepared PDB/<pdb_id>/ structure folders.",
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose logging.",
+    )
+    parser.add_argument(
+        "--include-all-axial-ligands",
+        action="store_true",
+        help="Disable filtering to the common axial ligand combinations.",
+    )
+    parser.add_argument("--skip-rmsd", action="store_true", help="Skip RMSD analysis.")
+    parser.add_argument("--skip-axial", action="store_true", help="Skip Fe-axial distance analysis.")
+    parser.add_argument("--skip-iron-plane", action="store_true", help="Skip Fe-plane distance analysis.")
+    parser.add_argument(
+        "--skip-absolute-iron-plane",
+        action="store_true",
+        help="Skip absolute Fe-plane distance analysis.",
+    )
+    parser.add_argument(
+        "--distortion",
+        action="store_true",
+        help="Request distortion analysis messaging.",
+    )
+    args = parser.parse_args()
+
+    analyzer = RMSDAnalyzer(
+        pdb_base_dir=args.pdb_base_dir,
+        verbose=args.verbose,
+        filter_axial_ligands=not args.include_all_axial_ligands,
+    )
+    analyzer.run_all_analyses(
+        rmsd=not args.skip_rmsd,
+        axial=not args.skip_axial,
+        iron_plane=not args.skip_iron_plane,
+        absolute_iron_plane=not args.skip_absolute_iron_plane,
+        distortion=args.distortion,
+    )
 
 
 if __name__ == "__main__":

@@ -18,6 +18,7 @@ import MDAnalysis as mda
 from scipy.stats import gaussian_kde
 import glob
 from joblib import Parallel, delayed
+from repo_paths import JSONS_DIR, resolve_table_input
 
 # ============================================================================
 # CENTRALIZED COLOR MAPPINGS
@@ -210,7 +211,7 @@ class plots_class:
     """
 
     def __init__(self):
-        self.json_dir = "/home/pbuser/Desktop/PhD_WORK/heme/jsons/"
+        self.json_dir = str(JSONS_DIR)
         self.split_legend_flag = False
         self.legend_split_variables = ["axials"]
 
@@ -1970,8 +1971,8 @@ class plots_class:
                     col_data = df_valid[col].dropna()
                     print(f"  {col}: {col_data.min():.4f} to {col_data.max():.4f} (mean: {col_data.mean():.4f})")
 
-    def plot_reduction_potentials_comprehensive(self, reduction_potentials_file='tables/reduction_potentials.csv',
-                                            processed_data_file='tables/processed_output.csv',
+    def plot_reduction_potentials_comprehensive(self, reduction_potentials_file=None,
+                                            processed_data_file=None,
                                             primary_grouping='charge_multiplicity', save_dir='plots',
                                             decode_dicts=None, figsize=(20, 16),
                                             potential_range=None, focus_pdbs=None,
@@ -1986,6 +1987,11 @@ class plots_class:
         import os
         verbose=False
         os.makedirs(save_dir, exist_ok=True)
+
+        if reduction_potentials_file is None:
+            reduction_potentials_file = str(resolve_table_input('reduction_potentials.csv'))
+        if processed_data_file is None:
+            processed_data_file = str(resolve_table_input('processed_output.csv'))
 
         try:
             # Load data

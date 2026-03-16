@@ -6,6 +6,7 @@ This script tests the new single histogram with axial ligand coloring.
 
 import pandas as pd
 from calculate_rmsd import RMSDAnalyzer
+from repo_paths import resolve_table_input
 
 def test_iron_plane_analysis_fix():
     """Test the fixed iron-plane analysis function."""
@@ -15,11 +16,11 @@ def test_iron_plane_analysis_fix():
     
     # Read the preprocessed data that should only have 5 axial combinations
     try:
-        df_plots = pd.read_csv("tables/processed_output.csv")
+        df_plots = pd.read_csv(resolve_table_input("processed_output.csv"))
         print(f"Loaded preprocessed data: {len(df_plots)} structures")
     except FileNotFoundError:
         try:
-            df_plots = pd.read_csv("tables/DB.csv")
+            df_plots = pd.read_csv(resolve_table_input("DB.csv"))
             print(f"Loaded raw data: {len(df_plots)} structures")
             print("WARNING: Using raw data - you may see more than 5 axial combinations")
         except FileNotFoundError:

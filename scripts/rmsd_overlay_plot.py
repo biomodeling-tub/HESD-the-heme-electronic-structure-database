@@ -8,11 +8,12 @@ Script to create overlay plot of RMSD data from two CSV files:
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from repo_paths import resolve_table_input
 
 def create_rmsd_overlay_plot():
     # Read the CSV files
-    rmsd_all_df = pd.read_csv('tables/rmsd_all.csv')
-    rmsd_results_df = pd.read_csv('tables/rmsd_results.csv')
+    rmsd_all_df = pd.read_csv(resolve_table_input('rmsd_all.csv'))
+    rmsd_results_df = pd.read_csv(resolve_table_input('rmsd_results.csv'))
     
     # Extract RMSD values
     rmsd_all_values = rmsd_all_df['RMSD_all']

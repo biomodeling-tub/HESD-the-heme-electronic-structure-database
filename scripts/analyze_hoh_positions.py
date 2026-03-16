@@ -6,10 +6,11 @@ This script investigates whether there's inconsistency in axial ligand assignmen
 
 import pandas as pd
 import numpy as np
+from repo_paths import resolve_table_input
 
 def main():
     # Load the data
-    csv_file = "tables/iron_axial_distances.csv"
+    csv_file = resolve_table_input("iron_axial_distances.csv")
     df = pd.read_csv(csv_file)
 
     print(f"Total measurements: {len(df)}")

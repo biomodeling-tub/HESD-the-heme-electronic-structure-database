@@ -7,6 +7,7 @@ Compares the sorted and unsorted versions of the processed data.
 import pandas as pd
 import numpy as np
 import os
+from repo_paths import resolve_table_input
 
 # Decoding dictionaries for axial ligands (from preprocessor.py)
 axial1_decode = {0: 'CYS', 1: 'HIS'}
@@ -26,9 +27,9 @@ def main():
     print("="*80)
 
     # Check if files exist
-    sorted_file = "tables/processed_output_sorted_axial.csv"
-    unsorted_file = "tables/processed_output_unsorted_axial.csv"
-    main_file = "tables/processed_output.csv"
+    sorted_file = str(resolve_table_input("processed_output_sorted_axial.csv"))
+    unsorted_file = str(resolve_table_input("processed_output_unsorted_axial.csv"))
+    main_file = str(resolve_table_input("processed_output.csv"))
 
     files_exist = []
     for f in [sorted_file, unsorted_file, main_file]:

@@ -53,8 +53,10 @@ def create_test_data():
                 'axial1': axial1,
                 'axial2': axial2
             })
-    
-    return pd.DataFrame(data)
+
+    df = pd.DataFrame(data)
+    df['charge_mult'] = df['charge'].astype(str) + '-' + df['multiplicity'].astype(str)
+    return df
 
 def test_new_functionality():
     """Test the new total energy table functionality."""

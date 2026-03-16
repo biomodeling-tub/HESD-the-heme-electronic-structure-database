@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 from pathlib import Path
+from repo_paths import resolve_table_input
 
 # Import centralized color mappings from plots.py
 try:
@@ -68,7 +69,7 @@ sns.set_context("paper", font_scale=1.2)
 class EnergyGapPlotter:
     """Plot energy differences vs HOMO-LUMO gaps for heme protein structures."""
 
-    def __init__(self, csv_path='tables/processed_output.csv', output_dir='plots'):
+    def __init__(self, csv_path=None, output_dir='plots'):
         """
         Initialize the plotter.
 
@@ -79,14 +80,14 @@ class EnergyGapPlotter:
         output_dir : str
             Directory to save plots
         """
-        self.csv_path = csv_path
+        self.csv_path = str(resolve_table_input('processed_output.csv')) if csv_path is None else csv_path
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
 
         # Load data
-        self.df = pd.read_csv(csv_path)
+        self.df = pd.read_csv(self.csv_path)
         if VERBOSE:
-            print(f"Loaded {len(self.df)} rows from {csv_path}")
+            print(f"Loaded {len(self.df)} rows from {self.csv_path}")
 
         # Prepare data
         self._prepare_data()
@@ -540,8 +541,7 @@ class EnergyGapPlotter:
 
 if __name__ == "__main__":
     # Create plotter instance
-    plotter = EnergyGapPlotter(csv_path='tables/processed_output.csv',
-                              output_dir='plots')
+    plotter = EnergyGapPlotter(output_dir='plots')
 
     # Generate all plots
     plotter.generate_all_plots()

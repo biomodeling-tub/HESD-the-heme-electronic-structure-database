@@ -8,11 +8,18 @@ before deciding on specific plot types for detailed analysis.
 """
 
 import os
+import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 from pathlib import Path
+from repo_paths import (
+    QM_ANALYSIS_TABLES_DIR,
+    canonical_table_path,
+    resolve_existing,
+    resolve_table_input,
+)
 
 # Import centralized color mappings from plots.py
 try:
@@ -61,11 +68,11 @@ except ImportError:
         return color_map
 
 class QMAnalysisPlotter:
-    def __init__(self, table_dir="/home/pbuser/Desktop/PhD_WORK/heme/prior_analysis/qm_analysis_tables/"):
+    def __init__(self, table_dir=None):
         """Initialize the plotter with the directory containing analysis tables."""
-        self.table_dir = Path(table_dir)
+        self.table_dir = Path(table_dir) if table_dir is not None else QM_ANALYSIS_TABLES_DIR
         self.output_dir = self.table_dir / "exploratory_plots"
-        self.output_dir.mkdir(exist_ok=True)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
         
         # Load all available tables
         self.tables = {}
@@ -101,7 +108,7 @@ class QMAnalysisPlotter:
         """Load auxiliary data for charge/multiplicity and axial ligand information."""
         try:
             # Try to load the processed_output.csv first as it has charge/multiplicity columns
-            processed_path = "/home/pbuser/Desktop/PhD_WORK/heme/tables/processed_output.csv"
+            processed_path = resolve_table_input("processed_output.csv")
             auxiliary_data_sources = []
             
             if os.path.exists(processed_path):
@@ -123,13 +130,16 @@ class QMAnalysisPlotter:
                 print(f"Loaded processed_output.csv with columns: {list(processed_data.columns)} ({len(processed_data)} rows)")
             
             # Also try to load DB.csv for additional axial data
-            db_path = "/home/pbuser/Desktop/PhD_WORK/heme/tables/DB.csv"
-            if os.path.exists(db_path):
+            supplementary_path = resolve_existing(
+                canonical_table_path("DB.csv"),
+                canonical_table_path("HESD_unfiltered.csv"),
+            )
+            if supplementary_path is not None and os.path.exists(supplementary_path):
                 try:
                     # For DB.csv, only get axial columns since it doesn't have proper charge/multiplicity
                     cols_to_read = ['file_name']
                     
-                    with open(db_path, 'r') as f:
+                    with open(supplementary_path, 'r') as f:
                         header = f.readline().strip().split(',')
                         
                     for col in header:
@@ -137,14 +147,14 @@ class QMAnalysisPlotter:
                             cols_to_read.append(col)
                     
                     if len(cols_to_read) > 1:  # Only load if we found axial columns
-                        db_data = pd.read_csv(db_path, usecols=cols_to_read)
+                        db_data = pd.read_csv(supplementary_path, usecols=cols_to_read)
                         auxiliary_data_sources.append(db_data)
-                        print(f"Loaded DB.csv with columns: {list(db_data.columns)} ({len(db_data)} rows)")
+                        print(f"Loaded {supplementary_path.name} with columns: {list(db_data.columns)} ({len(db_data)} rows)")
                 except Exception as e:
-                    print(f"Warning: Could not load DB.csv: {e}")
+                    print(f"Warning: Could not load supplementary axial table: {e}")
             
             # Try to load single_hemes.csv for additional axial data
-            single_hemes_path = "/home/pbuser/Desktop/PhD_WORK/heme/tables/single_hemes.csv"
+            single_hemes_path = resolve_table_input("single_hemes.csv")
             if os.path.exists(single_hemes_path):
                 try:
                     single_hemes = pd.read_csv(single_hemes_path)
@@ -898,8 +908,31 @@ class QMAnalysisPlotter:
 
 def main():
     """Main function to run all exploratory plotting."""
-    plotter = QMAnalysisPlotter()
-    plotter.plot_all(show_charge_mult=True, show_axial=True)
+    parser = argparse.ArgumentParser(
+        description="Create exploratory plots from the specialized QM analysis tables."
+    )
+    parser.add_argument(
+        "--table-dir",
+        default=str(QM_ANALYSIS_TABLES_DIR),
+        help="Directory containing the specialized QM analysis CSV tables.",
+    )
+    parser.add_argument(
+        "--hide-charge-multiplicity",
+        action="store_true",
+        help="Disable charge-multiplicity grouped plots.",
+    )
+    parser.add_argument(
+        "--hide-axial",
+        action="store_true",
+        help="Disable axial-ligand grouped plots.",
+    )
+    args = parser.parse_args()
+
+    plotter = QMAnalysisPlotter(table_dir=args.table_dir)
+    plotter.plot_all(
+        show_charge_mult=not args.hide_charge_multiplicity,
+        show_axial=not args.hide_axial,
+    )
 
 
 if __name__ == "__main__":

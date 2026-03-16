@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib as mpl
+import argparse
 import pdb_tools
 import subprocess
 import MDAnalysis as mda
@@ -24,7 +25,6 @@ with warnings.catch_warnings():
     from Bio.PDB.PDBParser import PDBParser
 warnings.filterwarnings("ignore", category=UserWarning)
 
-test=True
 debug=False
 
 class PDBPrepWarning(Warning):
@@ -35,7 +35,8 @@ class PDBPrep:
     def read_pyDISH(self):
         data = pd.read_csv('tables/pyDISH.csv')
         data = data.drop('Unnamed: 0', axis=1)
-        if test: data = data.iloc[44:]
+        if self.row_start is not None:
+            data = data.iloc[self.row_start:]
         print("Data loaded from pyDISH.csv with shape:", data.shape)
         print("First few rows of data:")
         print(data.head())
@@ -973,9 +974,10 @@ class PDBPrep:
             final_rmsd_df.to_csv('rmsd.csv', index=False)
         return
 
-    def __init__(self, verbose=False, cleanup=True):
+    def __init__(self, verbose=False, cleanup=True, row_start=None):
         self.verbose = verbose
         self.cleanup = cleanup
+        self.row_start = row_start
         self.debug_flags = {
             "debug": False, 
             "debug_add_patches_ax1": False,
@@ -1060,9 +1062,9 @@ class PDBPrep:
             result = "Failed"
         return pdb_id, stdout_buffer.getvalue(), stderr_buffer.getvalue(), result
 
-def run_parallel_processing(pdbprep_instance, data):
+def run_parallel_processing(pdbprep_instance, data, max_workers=1):
     results = []
-    with ProcessPoolExecutor(max_workers=1) as executor:
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = {
             executor.submit(
                 pdbprep_instance.process_row,
@@ -1078,10 +1080,29 @@ def run_parallel_processing(pdbprep_instance, data):
     return results
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Prepare heme structures and CHARMM/XTB inputs from tables/pyDISH.csv."
+    )
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging.")
+    parser.add_argument("--no-cleanup", action="store_true", help="Keep intermediate files.")
+    parser.add_argument(
+        "--row-start",
+        type=int,
+        default=None,
+        help="Optional starting row index in tables/pyDISH.csv for subset runs.",
+    )
+    parser.add_argument(
+        "--max-workers",
+        type=int,
+        default=1,
+        help="Number of worker processes for row processing.",
+    )
+    args = parser.parse_args()
+
     # Instantiate PDBPrep; data is now stored as pdbprep.data.
-    pdbprep = PDBPrep()
+    pdbprep = PDBPrep(verbose=args.verbose, cleanup=not args.no_cleanup, row_start=args.row_start)
     data = pdbprep.data
-    results = run_parallel_processing(pdbprep, data)
+    results = run_parallel_processing(pdbprep, data, max_workers=args.max_workers)
     
     # Dump logs after parallel processing
     with open("heme_struct.log", "w") as log_file, open("heme_struct.err", "w") as err_file:
