@@ -1,0 +1,89 @@
+* Autprotonation of heme and axial ligands
+*
+
+DIMENS CHSIZE 5000000 MAXRES 300000
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!PARAMETERS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+BOMLEV -1
+! Standard residues and parameters but only the important ones.
+STREAM toppar.str
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!HEME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+OPEN READ UNIT 42 CARD NAME "PDB/1cmu_HEME.pdb"
+READ SEQUENCE PDB UNIT 42
+GENERATE HEME SETUP WARN FIRST NONE LAST NONE
+CLOSE UNIT 42
+
+OPEN READ UNIT 43 CARD NAME "PDB/1cmu_HEME.pdb"
+READ COOR PDB UNIT 43 resid
+CLOSE UNIT 43
+
+COOR PRINT SELE SEGID HEME .and. .not. INIT END
+IC BUILD
+COOR PRINT SELE SEGID HEME .and. .not. INIT END
+HBUILD SELE SEGID HEME .and. HYDROGEN END
+COOR PRINT SELE SEGID HEME .and. .not. INIT END
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!AXIAL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+OPEN READ UNIT 42 CARD NAME "PDB/1cmu_AXI1.pdb"
+READ SEQUENCE PDB UNIT 42
+GENERATE AXI1 SETUP WARN FIRST NONE LAST NONE
+CLOSE UNIT 42
+
+OPEN READ UNIT 43 CARD NAME "PDB/1cmu_AXI1.pdb"
+READ COOR PDB UNIT 43 resid
+CLOSE UNIT 43
+
+PATCH POSH HEME 1 AXI1 2 setup
+IC BUILD
+COOR PRINT SELE SEGID AXI1 .and. .not. INIT END
+
+PATCH POSH HEME 1 AXI1 2 SETUP
+
+HBUILD SELE SEGID AXI1 .and. HYDROGEN END 
+COOR PRINT SELE SEGID AXI1 .and. .not. INIT END
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!AXIAL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+OPEN READ UNIT 42 CARD NAME "PDB/1cmu_AXI2.pdb"
+READ SEQUENCE PDB UNIT 42
+GENERATE AXI2 SETUP WARN FIRST NONE LAST NONE
+CLOSE UNIT 42
+
+OPEN READ UNIT 43 CARD NAME "PDB/1cmu_AXI2.pdb"
+READ COOR PDB UNIT 43 resid
+CLOSE UNIT 43
+
+COOR PRINT SELE SEGID AXI2 .and. .not. INIT END
+IC BUILD
+COOR PRINT SELE SEGID AXI2 .and. .not. INIT END
+HBUILD SELE SEGID AXI2 .and. HYDROGEN END
+COOR PRINT SELE SEGID AXI2 .and. .not. INIT END
+
+PATCH HIS2 AXI2 3 SETUP
+PATCH DELH AXI2 3 SETUP
+
+HBUILD SELE SEGID AXI2 .and. HYDROGEN END 
+COOR PRINT SELE SEGID AXI2 .and. .not. INIT END
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!OUTPUT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+IOFORMAT EXTEN
+WRITE COORD PDB NAME "PDB/1cmu_system_protonated.pdb"
+WRITE PSF CARD NAME "PDB/1cmu_system_protonated.psf"
+WRITE XYZ CARD NAME "PDB/1cmu_system_protonated.xyz"
+
+STOP
