@@ -1,0 +1,17 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!AXIAL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+OPEN READ UNIT 42 CARD NAME "PDB/{pdb_id}_{axial2_segname}.pdb"
+READ SEQUENCE PDB UNIT 42
+GENERATE {axial2_segname} SETUP WARN FIRST NONE LAST NONE
+CLOSE UNIT 42
+
+OPEN READ UNIT 43 CARD NAME "PDB/{pdb_id}_{axial2_segname}.pdb"
+READ COOR PDB UNIT 43 resid
+CLOSE UNIT 43
+
+PATCH POSH HEME 1 {axial2_segname} 3 setup
+IC BUILD
+COOR PRINT SELE SEGID {axial2_segname} .and. .not. INIT END
